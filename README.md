@@ -161,49 +161,7 @@ Group10_putEMG_CSE475/
     ├── Group10_putEMG_best.pth
     ├── Group10_putEMG_preprocessing.joblib
     └── label_map.json
-```## Repository Structure
 
-The repository follows the required Group-Dataset-Course structure.
-
-```text
-Group10_putEMG_CSE475/
-│
-├── README.md
-│
-├── report/
-│   ├── task1/
-│   │   └── Group10_putEMG_task1_report.pdf
-│   │
-│   ├── task2/
-│   │   └── Group10_putEMG_task2_report.pdf
-│   │
-│   └── task3/
-│       └── Group10_putEMG_task3_report.pdf
-│
-├── code/
-│   ├── task1/
-│   │   └── Task1_EDA_and_Preprocessing.ipynb
-│   │
-│   ├── task2/
-│   │   └── Task2_Baselines_and_Proposed_GNN.ipynb
-│   │
-│   └── task3/
-│       └── Group10_putEMG_task3_improvement_ablation.ipynb
-│
-├── related_work/
-│   ├── Group10_putEMG_related_work_table.pdf
-│   │
-│   └── papers/
-│       ├── paper1.pdf
-│       ├── paper2.pdf
-│       ├── paper3.pdf
-│       ├── paper4.pdf
-│       └── paper5.pdf
-│
-└── models/
-    ├── Group10_putEMG_best.pth
-    ├── Group10_putEMG_preprocessing.joblib
-    └── label_map.json
 ```
 
 ## Model and Preprocessing Files
