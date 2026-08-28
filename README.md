@@ -1,26 +1,270 @@
 # Hand Gesture Recognition using Graph Neural Networks (putEMG)
 
-This repository contains the complete implementation for recognizing hand gestures from surface Electromyography (sEMG) signals using Graph Neural Networks (GNN). The project follows a strict subject-independent evaluation protocol and explores model interpretability using Explainable AI (XAI) techniques (SHAP and LIME).
+This repository contains the complete implementation for recognizing hand gestures from surface Electromyography (sEMG) signals using Graph Neural Networks (GNN). The project follows a strict subject-independent evaluation protocol and explores model interpretability using Explainable AI (XAI) techniques, including SHAP and LIME.
 
 ## Project Information
-* **Group Name:** Group 10
-* **Dataset:** [putEMG Dataset](https://biolab.put.poznan.pl/putemg-dataset/) (24 sEMG channels, 8 hand gesture classes)
-* **Track:** Track 1 (Graph Neural Networks - GNN)
-* **Core Focus:** Subject-Independent Generalization, GraphSAGE Optimization, and XAI (SHAP & LIME) without data leakage.
+
+- **Group Name:** Group 10
+- **Dataset:** [putEMG Dataset](https://biolab.put.poznan.pl/putemg-dataset/) (24 sEMG channels, 8 hand gesture classes)
+- **Track:** Track 1 (Graph Neural Networks - GNN)
+- **Core Focus:** Subject-Independent Generalization, GraphSAGE Optimization, and XAI (SHAP & LIME) without data leakage.
 
 ## Dataset Details
-The dataset consists of 619,479 sliding windows extracted from 24 sEMG electrodes. We extracted 7 time-domain features (MAV, RMS, STD, VAR, WL, ZC, SSC) per channel, resulting in 168 input features per window. The dataset is highly imbalanced, with the 'Idle' gesture accounting for ~61% of the data. 
 
-**Data Split (Strict Subject-Independent Protocol):**
-* **Training:** 31 Subjects (435,797 windows)
-* **Validation:** 6 Subjects (85,277 windows)
-* **Held-out Test (Frozen):** 7 Subjects (98,405 windows)
+The dataset consists of **619,479 sliding windows** extracted from 24 sEMG electrodes. We extracted 7 time-domain features (MAV, RMS, STD, VAR, WL, ZC, SSC) per channel, resulting in **168 input features per window**.
+
+The dataset is highly imbalanced, with the **Idle** gesture accounting for approximately **61%** of the data.
+
+### Data Split (Strict Subject-Independent Protocol)
+
+- **Training:** 31 Subjects (435,797 windows)
+- **Validation:** 6 Subjects (85,277 windows)
+- **Held-out Test (Frozen):** 7 Subjects (98,405 windows)
 
 ## Requirements
+
 To reproduce the experiments, install the following dependencies:
+
 ```bash
 pip install torch torchvision
 pip install torch-geometric
 pip install pandas numpy scikit-learn matplotlib seaborn
 pip install xgboost lightgbm
 pip install shap lime joblib
+```
+
+## How to Run
+
+The project is divided into three sequential Jupyter Notebooks. Run them in the following order.
+
+### 1. `Task1_EDA_and_Preprocessing.ipynb`
+
+This notebook performs the initial data analysis and preprocessing.
+
+- Performs Exploratory Data Analysis (EDA).
+- Extracts the 7 relevant time-domain features:
+  - MAV
+  - RMS
+  - STD
+  - VAR
+  - WL
+  - ZC
+  - SSC
+- Drops redundant features such as IEMG.
+- Prepares the dataset for Subject-Independent splitting.
+
+### 2. `Task2_Baselines_and_Proposed_GNN.ipynb`
+
+This notebook trains the traditional machine learning baselines and the initial proposed GNN model.
+
+- Fits `VarianceThreshold` and `RobustScaler` strictly on the training subjects.
+- Trains the following traditional ML baselines:
+  - Logistic Regression
+  - Decision Tree
+  - k-NN
+  - LightGBM
+  - XGBoost
+  - Random Forest
+  - SVM
+  - MLP
+- Implements the initial proposed `Corr-GCN` model.
+- Builds a Top-K=4 correlation graph dynamically from the training data.
+
+### 3. `Group10_putEMG_task3_improvement_ablation.ipynb`
+
+This notebook performs model improvement, ablation analysis, cross-validation, and explainability analysis.
+
+- Conducts a controlled ablation study on the GNN architecture.
+- Tests different:
+  - Top-K sizes
+  - Edge weight modes
+  - GraphSAGE variants
+  - Hidden sizes
+  - Dropout values
+  - Batch normalization settings
+- Executes Subject-Grouped 5-Fold Cross Validation.
+- Compares the Final GNN with the best baseline (MLP).
+- Generates Explainable AI (XAI) reports using SHAP and LIME.
+- Evaluates XAI explanations on Median-Confidence held-out test samples.
+
+## Results & Findings
+
+### 1. 5-Fold Cross Validation (Subject-Grouped)
+
+The optimized Final GNN using GraphSAGE, Top-K=2, Unweighted edges, and 3 hidden layers was evaluated against the Best Baseline (MLP) over 5 strict subject-grouped folds.
+
+| **Model** | **Macro-F1 Mean** | **Macro-F1 Std** | **Accuracy Mean** | **Balanced Acc. Mean** |
+|---|---:|---:|---:|---:|
+| **MLP (PyTorch)** | 0.5340 | 0.0422 | 0.6558 | 0.5815 |
+| **Final GNN (GraphSAGE)** | 0.5143 | 0.0325 | 0.7243 | 0.5047 |
+
+A paired Wilcoxon signed-rank test confirmed no statistically significant difference (**p = 0.1875**) between the Final GNN and the MLP baseline across the five subject-grouped folds.
+
+### 2. Held-Out Test Performance
+
+The Final GNN was evaluated strictly once on the **7 frozen test subjects** after finalizing the hyperparameters.
+
+| **Model** | **Accuracy** | **Balanced Accuracy** | **Macro Precision** | **Macro Recall** | **Macro-F1** |
+|---|---:|---:|---:|---:|---:|
+| **Final GNN** | 0.7354 | 0.5075 | 0.5587 | 0.5075 | **0.5238** |
+
+### 3. Explainability (XAI)
+
+To ensure unbiased interpretation and avoid cherry-picking, one correct prediction and one wrong prediction were selected based on confidence scores closest to the median.
+
+SHAP and LIME reference backgrounds were isolated to training subjects only to prevent data leakage.
+
+- **Dominant Feature:** Both SHAP and LIME identified **Waveform Length (WL)** as the most critical metric for the model's decision-making process, followed by Standard Deviation (STD).
+- **Correct Prediction (Pinch-Ring):** The model successfully identified the gesture using signals primarily from Electrodes 22, 10, and 13.
+- **Incorrect Prediction (Flexion predicted as Fist):** The model showed confusion with **57% confidence** due to overlapping muscle activation patterns in the flexor muscles, heavily influenced by signals from Electrodes 14 and 6.
+
+## Repository Structure
+
+The repository follows the required Group-Dataset-Course structure.
+
+```text
+Group10_putEMG_CSE475/
+│
+├── README.md
+│
+├── report/
+│   ├── task1/
+│   │   └── Group10_putEMG_task1_report.pdf
+│   │
+│   ├── task2/
+│   │   └── Group10_putEMG_task2_report.pdf
+│   │
+│   └── task3/
+│       └── Group10_putEMG_task3_report.pdf
+│
+├── code/
+│   ├── task1/
+│   │   └── Task1_EDA_and_Preprocessing.ipynb
+│   │
+│   ├── task2/
+│   │   └── Task2_Baselines_and_Proposed_GNN.ipynb
+│   │
+│   └── task3/
+│       └── Group10_putEMG_task3_improvement_ablation.ipynb
+│
+├── related_work/
+│   ├── Group10_putEMG_related_work_table.pdf
+│   │
+│   └── papers/
+│       ├── paper1.pdf
+│       ├── paper2.pdf
+│       ├── paper3.pdf
+│       ├── paper4.pdf
+│       └── paper5.pdf
+│
+└── models/
+    ├── Group10_putEMG_best.pth
+    ├── Group10_putEMG_preprocessing.joblib
+    └── label_map.json
+```## Repository Structure
+
+The repository follows the required Group-Dataset-Course structure.
+
+```text
+Group10_putEMG_CSE475/
+│
+├── README.md
+│
+├── report/
+│   ├── task1/
+│   │   └── Group10_putEMG_task1_report.pdf
+│   │
+│   ├── task2/
+│   │   └── Group10_putEMG_task2_report.pdf
+│   │
+│   └── task3/
+│       └── Group10_putEMG_task3_report.pdf
+│
+├── code/
+│   ├── task1/
+│   │   └── Task1_EDA_and_Preprocessing.ipynb
+│   │
+│   ├── task2/
+│   │   └── Task2_Baselines_and_Proposed_GNN.ipynb
+│   │
+│   └── task3/
+│       └── Group10_putEMG_task3_improvement_ablation.ipynb
+│
+├── related_work/
+│   ├── Group10_putEMG_related_work_table.pdf
+│   │
+│   └── papers/
+│       ├── paper1.pdf
+│       ├── paper2.pdf
+│       ├── paper3.pdf
+│       ├── paper4.pdf
+│       └── paper5.pdf
+│
+└── models/
+    ├── Group10_putEMG_best.pth
+    ├── Group10_putEMG_preprocessing.joblib
+    └── label_map.json
+```
+
+## Model and Preprocessing Files
+
+The trained model and preprocessing files are stored in the `models/` directory.
+
+- `Group10_putEMG_best.pth` - Final trained GNN model checkpoint.
+- `Group10_putEMG_preprocessing.joblib` - Saved preprocessing pipeline.
+- `label_map.json` - Mapping between gesture labels and class indices.
+
+## Key Experimental Findings
+
+The experiments show that the Final GNN achieved an accuracy of **0.7354** on the frozen held-out test subjects, with a Macro-F1 score of **0.5238**.
+
+The subject-independent evaluation protocol ensures that subjects in the training, validation, and test sets remain strictly separated. This helps prevent data leakage and provides a more realistic evaluation of generalization to unseen subjects.
+
+The 5-Fold Cross Validation results indicate that the MLP achieved a higher mean Macro-F1 score than the Final GNN, while the Final GNN achieved higher mean accuracy. However, the Wilcoxon signed-rank test showed that the difference was not statistically significant (**p = 0.1875**).
+
+## Explainable AI Findings
+
+The XAI analysis using SHAP and LIME identified **Waveform Length (WL)** as the most influential feature, followed by **Standard Deviation (STD)**.
+
+For the correct Pinch-Ring prediction, the model relied primarily on signals from Electrodes **22, 10, and 13**.
+
+For the incorrect Flexion-to-Fist prediction, the model showed **57% confidence**, with signals from Electrodes **14 and 6** contributing strongly to the decision. This confusion may be related to overlapping muscle activation patterns between the two gestures.
+
+## Reproducibility
+
+All experiments follow a strict subject-independent evaluation protocol.
+
+- Training subjects are used for model training and fitting preprocessing components.
+- Validation subjects are used for model selection and hyperparameter tuning.
+- The held-out test subjects remain frozen and are evaluated only after finalizing the model configuration.
+- SHAP and LIME background data are restricted to training subjects to prevent data leakage.
+
+## Technologies Used
+
+- Python
+- PyTorch
+- PyTorch Geometric
+- Scikit-learn
+- LightGBM
+- XGBoost
+- SHAP
+- LIME
+- Pandas
+- NumPy
+- Matplotlib
+- Seaborn
+- Jupyter Notebook
+
+## Dataset
+
+The project uses the **putEMG Dataset**, containing surface Electromyography (sEMG) recordings for hand gesture recognition.
+
+Dataset source: [putEMG Dataset](https://biolab.put.poznan.pl/putemg-dataset/)
+
+## Group
+
+**Group 10**
+
+**Course:** CSE475
+
+**Project Track:** Track 1 - Graph Neural Networks (GNN)
